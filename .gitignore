@@ -1,0 +1,3 @@
+/target/
+/.joern-agent/
+*.cpg.bin

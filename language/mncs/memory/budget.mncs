@@ -1,0 +1,21 @@
+mncs 0.6;
+
+module mncs.memory.budget;
+
+enum Budget { FITS, INSUFFICIENT, UNKNOWN }
+
+fn decide_budget(required_units: i64, budget_units: i64, required_items: i64) -> (result: Budget) {
+    if required_units < 0 {
+        return Budget.UNKNOWN;
+    }
+    if budget_units < 0 {
+        return Budget.UNKNOWN;
+    }
+    if required_items < 0 {
+        return Budget.UNKNOWN;
+    }
+    if required_units <= budget_units {
+        return Budget.FITS;
+    }
+    return Budget.INSUFFICIENT;
+}

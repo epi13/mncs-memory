@@ -1,0 +1,31 @@
+mncs 0.6;
+
+// The root module is the machine-native semantic entry point used by the
+// host. Its policy is split across linked modules so each decision family has
+// a separately inspectable identity and can later receive its own specialist.
+module mncs.memory.core;
+
+use mncs.memory.policy;
+use mncs.memory.budget;
+use mncs.memory.escalation;
+use mncs.memory.query;
+
+fn apply_ingestion(relation: Relation, evidence: Evidence) -> (result: Disposition) {
+    return decide_ingestion(relation, evidence);
+}
+
+fn apply_budget(required_units: i64, budget_units: i64, required_items: i64) -> (result: Budget) {
+    return decide_budget(required_units, budget_units, required_items);
+}
+
+fn apply_escalation(layer: Layer, confidence: i64) -> (result: Escalation) {
+    return decide_escalation(layer, confidence);
+}
+
+fn apply_answer(confidence: i64, minimum_confidence: i64, freshness: i64, freshness_required: i64) -> (result: Answer) {
+    return gate(confidence, minimum_confidence, freshness, freshness_required);
+}
+
+fn rank_candidate(topic_match: i64, subject_match: i64, confidence: i64, freshness: i64) -> (result: i64) {
+    return score(topic_match, subject_match, confidence, freshness);
+}

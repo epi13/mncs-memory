@@ -1,0 +1,15 @@
+{
+  "processor_role": "deterministic-specialists",
+  "old_version": "faulty-entity-v1",
+  "new_version": "reference-v1",
+  "affected_claims": [
+    "claim:sha256:4d53f9e061723b580c02463101bcfedc477579c0f34c2d7f884d480c999e18d4"
+  ],
+  "invalidated_claims": [
+    "claim:sha256:4d53f9e061723b580c02463101bcfedc477579c0f34c2d7f884d480c999e18d4"
+  ],
+  "recomputed_claims": [
+    "claim:sha256:a22117e808b55e8435cbdba8afc00ae97cbdffb4cfc2dc7782aa45060a667a8f"
+  ],
+  "unchanged_observations": 1
+}

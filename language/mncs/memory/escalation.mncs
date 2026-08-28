@@ -1,0 +1,22 @@
+mncs 0.6;
+
+module mncs.memory.escalation;
+
+enum Layer { DETERMINISTIC, TINY, SPECIALIST, LARGER, GENERAL }
+enum Escalation { NONE, SPECIALIST, GENERAL_REASONER, UNKNOWN }
+
+fn decide_escalation(layer: Layer, confidence: i64) -> (result: Escalation) {
+    if confidence < 0 {
+        return Escalation.UNKNOWN;
+    }
+    if confidence >= 85 {
+        return Escalation.NONE;
+    }
+    return match layer {
+        DETERMINISTIC => Escalation.SPECIALIST,
+        TINY => Escalation.SPECIALIST,
+        SPECIALIST => Escalation.GENERAL_REASONER,
+        LARGER => Escalation.GENERAL_REASONER,
+        GENERAL => Escalation.UNKNOWN,
+    };
+}

@@ -1,0 +1,19 @@
+[package]
+name = "mncs-memory"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Research substrate for semantic, provenance-bearing AI memory"
+
+[dependencies]
+mncs-compiler = { git = "https://github.com/epi13/mncs-language.git", rev = "8447dad057107d812fa7f46af92f70ded74ee457" }
+mncs-codegen = { git = "https://github.com/epi13/mncs-language.git", rev = "8447dad057107d812fa7f46af92f70ded74ee457" }
+mncs-model = { git = "https://github.com/epi13/mncs-language.git", rev = "8447dad057107d812fa7f46af92f70ded74ee457" }
+mncs-syntax = { git = "https://github.com/epi13/mncs-language.git", rev = "8447dad057107d812fa7f46af92f70ded74ee457" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+thiserror = "2"
+
+[dev-dependencies]
+pretty_assertions = "1"

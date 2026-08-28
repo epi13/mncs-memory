@@ -1,0 +1,28 @@
+mncs 0.6;
+
+module mncs.memory.query;
+
+enum Answer { PASS, UNKNOWN, FAIL }
+
+fn gate(confidence: i64, minimum_confidence: i64, freshness: i64, freshness_required: i64) -> (result: Answer) {
+    if confidence < 0 {
+        return Answer.UNKNOWN;
+    }
+    if minimum_confidence < 0 {
+        return Answer.UNKNOWN;
+    }
+    if freshness_required > 0 && freshness < freshness_required {
+        return Answer.UNKNOWN;
+    }
+    if confidence < minimum_confidence {
+        return Answer.UNKNOWN;
+    }
+    return Answer.PASS;
+}
+
+fn score(topic_match: i64, subject_match: i64, confidence: i64, freshness: i64) -> (result: i64) {
+    if topic_match < 0 || subject_match < 0 || confidence < 0 || freshness < 0 {
+        return 0;
+    }
+    return topic_match *% 1000 +% subject_match *% 100 +% confidence +% freshness;
+}

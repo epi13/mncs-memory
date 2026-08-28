@@ -1,0 +1,38 @@
+mncs 0.6;
+
+module mncs.memory.policy;
+
+enum Relation { UNRELATED, SAME, REFINES, CONTRADICTS, SUPERSEDES, AMBIGUOUS }
+enum Evidence { DIRECT, SUPPORTED, WEAK, MISSING }
+enum Disposition { NEW, DUPLICATE, REFINEMENT, CONTRADICTION, SUPERSESSION, UNKNOWN }
+
+fn decide_ingestion(relation: Relation, evidence: Evidence) -> (result: Disposition) {
+    return match relation {
+        AMBIGUOUS => Disposition.UNKNOWN,
+        UNRELATED => Disposition.NEW,
+        SAME => match evidence {
+            MISSING => Disposition.UNKNOWN,
+            DIRECT => Disposition.DUPLICATE,
+            SUPPORTED => Disposition.DUPLICATE,
+            WEAK => Disposition.DUPLICATE,
+        },
+        REFINES => match evidence {
+            MISSING => Disposition.UNKNOWN,
+            DIRECT => Disposition.REFINEMENT,
+            SUPPORTED => Disposition.REFINEMENT,
+            WEAK => Disposition.UNKNOWN,
+        },
+        CONTRADICTS => match evidence {
+            DIRECT => Disposition.CONTRADICTION,
+            SUPPORTED => Disposition.CONTRADICTION,
+            WEAK => Disposition.UNKNOWN,
+            MISSING => Disposition.UNKNOWN,
+        },
+        SUPERSEDES => match evidence {
+            DIRECT => Disposition.SUPERSESSION,
+            SUPPORTED => Disposition.SUPERSESSION,
+            WEAK => Disposition.UNKNOWN,
+            MISSING => Disposition.UNKNOWN,
+        },
+    };
+}

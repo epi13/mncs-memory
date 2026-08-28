@@ -1,0 +1,630 @@
+{
+  "schema_version": "mncs-memory.benchmark/0.1",
+  "corpus": "bounded-adversarial-memory-vertical-slice",
+  "scenario_count": 11,
+  "cases": [
+    {
+      "id": "current-preference",
+      "note": "supersession selects the current belief",
+      "raw_context": {
+        "answer": "",
+        "status": "UNKNOWN",
+        "correct_against_frozen_oracle": false,
+        "evaluated_as_answer": false,
+        "required_fact_recall": 0.0,
+        "irrelevant_fact_inclusion": 0,
+        "units": 0,
+        "candidates_exposed": 0
+      },
+      "simple_retrieval": {
+        "answer": "ui.theme=dark mode;ui.theme=light mode;ui.theme=dark mode",
+        "status": "PASS",
+        "correct_against_frozen_oracle": true,
+        "evaluated_as_answer": true,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 0,
+        "units": 57,
+        "candidates_exposed": 3
+      },
+      "mncs_memory": {
+        "capsule": {
+          "schema_version": "mncs-memory.answer-capsule/0.1",
+          "status": "PASS",
+          "answer": "ui.theme=light mode",
+          "items": [
+            {
+              "claim_identity": "claim:sha256:80b0a62fe82df2bc1ef356c8395e2e5f4d6bbd96bf2ee0f59a567a1ee999726c",
+              "subject": "entity:alice",
+              "topic": "ui.theme",
+              "value": "light mode",
+              "confidence": 95,
+              "valid_from": 20,
+              "stale": false
+            }
+          ],
+          "units": 19,
+          "budget": 120,
+          "required_topics_preserved": true,
+          "candidates_exposed": 1,
+          "source_claims_exposed": 1,
+          "escalation": "NONE",
+          "uncertainty": [],
+          "provenance_included": false
+        },
+        "correct_against_frozen_oracle": true,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 0
+      }
+    },
+    {
+      "id": "conflict-hidden",
+      "note": "contradiction does not become a confident belief",
+      "raw_context": {
+        "answer": "",
+        "status": "UNKNOWN",
+        "correct_against_frozen_oracle": true,
+        "evaluated_as_answer": false,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 0,
+        "units": 0,
+        "candidates_exposed": 0
+      },
+      "simple_retrieval": {
+        "answer": "timezone=UTC;timezone=America/Los_Angeles;ui.theme=light mode",
+        "status": "PASS",
+        "correct_against_frozen_oracle": false,
+        "evaluated_as_answer": true,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 3,
+        "units": 61,
+        "candidates_exposed": 3
+      },
+      "mncs_memory": {
+        "capsule": {
+          "schema_version": "mncs-memory.answer-capsule/0.1",
+          "status": "UNKNOWN",
+          "answer": "UNKNOWN",
+          "items": [],
+          "units": 7,
+          "budget": 120,
+          "required_topics_preserved": false,
+          "candidates_exposed": 2,
+          "source_claims_exposed": 2,
+          "escalation": "GENERAL_REASONER",
+          "uncertainty": [
+            "multiple active values remain unresolved"
+          ],
+          "provenance_included": false
+        },
+        "correct_against_frozen_oracle": true,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 0
+      }
+    },
+    {
+      "id": "conflict-inspection",
+      "note": "deliberate conflict/provenance expansion",
+      "raw_context": {
+        "answer": "",
+        "status": "UNKNOWN",
+        "correct_against_frozen_oracle": false,
+        "evaluated_as_answer": false,
+        "required_fact_recall": 0.0,
+        "irrelevant_fact_inclusion": 0,
+        "units": 0,
+        "candidates_exposed": 0
+      },
+      "simple_retrieval": {
+        "answer": "timezone=UTC;timezone=America/Los_Angeles;ui.theme=light mode",
+        "status": "PASS",
+        "correct_against_frozen_oracle": false,
+        "evaluated_as_answer": true,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 1,
+        "units": 61,
+        "candidates_exposed": 3
+      },
+      "mncs_memory": {
+        "capsule": {
+          "schema_version": "mncs-memory.answer-capsule/0.1",
+          "status": "UNKNOWN",
+          "answer": "timezone=UTC;timezone=America/Los_Angeles",
+          "items": [
+            {
+              "claim_identity": "claim:sha256:30f4440e380d800c0bfc8e2019ab3aa4c113822ba353ab931835507c0b189b95",
+              "subject": "entity:alice",
+              "topic": "timezone",
+              "value": "UTC",
+              "confidence": 100,
+              "valid_from": 12,
+              "stale": false,
+              "supporting_observations": [
+                "observation:contradiction-1"
+              ]
+            },
+            {
+              "claim_identity": "claim:sha256:89d738451e6e859105dfbb0a8459de948ed73946f22a1463ca43910f49921676",
+              "subject": "entity:alice",
+              "topic": "timezone",
+              "value": "America/Los_Angeles",
+              "confidence": 90,
+              "valid_from": 13,
+              "stale": false,
+              "supporting_claims": [
+                "claim:sha256:30f4440e380d800c0bfc8e2019ab3aa4c113822ba353ab931835507c0b189b95"
+              ],
+              "supporting_observations": [
+                "observation:contradiction-2"
+              ]
+            }
+          ],
+          "units": 41,
+          "budget": 120,
+          "required_topics_preserved": true,
+          "candidates_exposed": 2,
+          "source_claims_exposed": 2,
+          "escalation": "NONE",
+          "uncertainty": [
+            "conflict set returned for deliberate inspection"
+          ],
+          "provenance_included": true
+        },
+        "correct_against_frozen_oracle": true,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 0
+      }
+    },
+    {
+      "id": "stale-filter",
+      "note": "freshness requirement excludes stale evidence",
+      "raw_context": {
+        "answer": "",
+        "status": "UNKNOWN",
+        "correct_against_frozen_oracle": true,
+        "evaluated_as_answer": false,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 0,
+        "units": 0,
+        "candidates_exposed": 0
+      },
+      "simple_retrieval": {
+        "answer": "status=available;preference=red;preference=blue",
+        "status": "PASS",
+        "correct_against_frozen_oracle": false,
+        "evaluated_as_answer": true,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 3,
+        "units": 47,
+        "candidates_exposed": 3
+      },
+      "mncs_memory": {
+        "capsule": {
+          "schema_version": "mncs-memory.answer-capsule/0.1",
+          "status": "UNKNOWN",
+          "answer": "UNKNOWN",
+          "items": [],
+          "units": 7,
+          "budget": 120,
+          "required_topics_preserved": false,
+          "candidates_exposed": 0,
+          "source_claims_exposed": 0,
+          "escalation": "GENERAL_REASONER",
+          "uncertainty": [
+            "no eligible current claim met the query filters"
+          ],
+          "provenance_included": false
+        },
+        "correct_against_frozen_oracle": true,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 0
+      }
+    },
+    {
+      "id": "multi-memory",
+      "note": "correct result requires multiple claims",
+      "raw_context": {
+        "answer": "",
+        "status": "UNKNOWN",
+        "correct_against_frozen_oracle": false,
+        "evaluated_as_answer": false,
+        "required_fact_recall": 0.0,
+        "irrelevant_fact_inclusion": 0,
+        "units": 0,
+        "candidates_exposed": 0
+      },
+      "simple_retrieval": {
+        "answer": "budget=120 character capsule;architecture=specialist router;scope=experimental bounded benchmark",
+        "status": "PASS",
+        "correct_against_frozen_oracle": true,
+        "evaluated_as_answer": true,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 1,
+        "units": 96,
+        "candidates_exposed": 3
+      },
+      "mncs_memory": {
+        "capsule": {
+          "schema_version": "mncs-memory.answer-capsule/0.1",
+          "status": "PASS",
+          "answer": "budget=120 character capsule;architecture=specialist router",
+          "items": [
+            {
+              "claim_identity": "claim:sha256:528c5897a9724aa4fd5f7004939ca16eb251ce70092999c397a4246be6c38326",
+              "subject": "entity:memory-repo",
+              "topic": "budget",
+              "value": "120 character capsule",
+              "confidence": 100,
+              "valid_from": 28,
+              "stale": false
+            },
+            {
+              "claim_identity": "claim:sha256:69d41e1ec0cb816925576d7a764333a00f6156b4d170864e76728b837171be7f",
+              "subject": "entity:memory-repo",
+              "topic": "architecture",
+              "value": "specialist router",
+              "confidence": 100,
+              "valid_from": 27,
+              "stale": false
+            }
+          ],
+          "units": 59,
+          "budget": 120,
+          "required_topics_preserved": true,
+          "candidates_exposed": 5,
+          "source_claims_exposed": 5,
+          "escalation": "NONE",
+          "uncertainty": [],
+          "provenance_included": false
+        },
+        "correct_against_frozen_oracle": true,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 0
+      }
+    },
+    {
+      "id": "similarity-trap",
+      "note": "topic semantics reject a nearby vector-database record",
+      "raw_context": {
+        "answer": "",
+        "status": "UNKNOWN",
+        "correct_against_frozen_oracle": false,
+        "evaluated_as_answer": false,
+        "required_fact_recall": 0.0,
+        "irrelevant_fact_inclusion": 0,
+        "units": 0,
+        "candidates_exposed": 0
+      },
+      "simple_retrieval": {
+        "answer": "scope=experimental bounded benchmark;storage=lexical append log;architecture=specialist router",
+        "status": "PASS",
+        "correct_against_frozen_oracle": true,
+        "evaluated_as_answer": true,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 2,
+        "units": 94,
+        "candidates_exposed": 3
+      },
+      "mncs_memory": {
+        "capsule": {
+          "schema_version": "mncs-memory.answer-capsule/0.1",
+          "status": "PASS",
+          "answer": "storage=lexical append log",
+          "items": [
+            {
+              "claim_identity": "claim:sha256:aaa8fa365ceb3e23522c76f9a9b157fcde6decdd29284f531362706f9704653c",
+              "subject": "entity:memory-repo",
+              "topic": "storage",
+              "value": "lexical append log",
+              "confidence": 100,
+              "valid_from": 25,
+              "stale": false
+            }
+          ],
+          "units": 26,
+          "budget": 120,
+          "required_topics_preserved": true,
+          "candidates_exposed": 1,
+          "source_claims_exposed": 1,
+          "escalation": "NONE",
+          "uncertainty": [],
+          "provenance_included": false
+        },
+        "correct_against_frozen_oracle": true,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 0
+      }
+    },
+    {
+      "id": "insufficient-evidence",
+      "note": "weak conflicting evidence is not promoted",
+      "raw_context": {
+        "answer": "",
+        "status": "UNKNOWN",
+        "correct_against_frozen_oracle": true,
+        "evaluated_as_answer": false,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 0,
+        "units": 0,
+        "candidates_exposed": 0
+      },
+      "simple_retrieval": {
+        "answer": "preference=red;preference=blue;status=available",
+        "status": "PASS",
+        "correct_against_frozen_oracle": false,
+        "evaluated_as_answer": true,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 1,
+        "units": 47,
+        "candidates_exposed": 3
+      },
+      "mncs_memory": {
+        "capsule": {
+          "schema_version": "mncs-memory.answer-capsule/0.1",
+          "status": "UNKNOWN",
+          "answer": "UNKNOWN",
+          "items": [
+            {
+              "claim_identity": "claim:sha256:6e7c04f0e0faa97c6049aac92323455c57abb9240191762bb78a7a0f8779da0b",
+              "subject": "entity:bob",
+              "topic": "preference",
+              "value": "red",
+              "confidence": 55,
+              "valid_from": 40,
+              "stale": false
+            }
+          ],
+          "units": 7,
+          "budget": 120,
+          "required_topics_preserved": true,
+          "candidates_exposed": 1,
+          "source_claims_exposed": 1,
+          "escalation": "NONE",
+          "uncertainty": [],
+          "provenance_included": false
+        },
+        "correct_against_frozen_oracle": true,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 0
+      }
+    },
+    {
+      "id": "budget-pressure",
+      "note": "small delivery budget cannot preserve required facts",
+      "raw_context": {
+        "answer": "",
+        "status": "UNKNOWN",
+        "correct_against_frozen_oracle": true,
+        "evaluated_as_answer": false,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 0,
+        "units": 0,
+        "candidates_exposed": 0
+      },
+      "simple_retrieval": {
+        "answer": "architecture=specialist router;budget=120 character capsule;scope=experimental bounded benchmark",
+        "status": "PASS",
+        "correct_against_frozen_oracle": false,
+        "evaluated_as_answer": true,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 1,
+        "units": 96,
+        "candidates_exposed": 3
+      },
+      "mncs_memory": {
+        "capsule": {
+          "schema_version": "mncs-memory.answer-capsule/0.1",
+          "status": "UNKNOWN",
+          "answer": "UNKNO",
+          "items": [
+            {
+              "claim_identity": "claim:sha256:528c5897a9724aa4fd5f7004939ca16eb251ce70092999c397a4246be6c38326",
+              "subject": "entity:memory-repo",
+              "topic": "budget",
+              "value": "120 character capsule",
+              "confidence": 100,
+              "valid_from": 28,
+              "stale": false
+            },
+            {
+              "claim_identity": "claim:sha256:69d41e1ec0cb816925576d7a764333a00f6156b4d170864e76728b837171be7f",
+              "subject": "entity:memory-repo",
+              "topic": "architecture",
+              "value": "specialist router",
+              "confidence": 100,
+              "valid_from": 27,
+              "stale": false
+            }
+          ],
+          "units": 5,
+          "budget": 5,
+          "required_topics_preserved": true,
+          "candidates_exposed": 6,
+          "source_claims_exposed": 6,
+          "escalation": "NONE",
+          "uncertainty": [
+            "answer budget cannot preserve all selected information"
+          ],
+          "provenance_included": false
+        },
+        "correct_against_frozen_oracle": true,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 0
+      }
+    },
+    {
+      "id": "provenance",
+      "note": "compact answer can opt into lineage",
+      "raw_context": {
+        "answer": "",
+        "status": "UNKNOWN",
+        "correct_against_frozen_oracle": false,
+        "evaluated_as_answer": false,
+        "required_fact_recall": 0.0,
+        "irrelevant_fact_inclusion": 0,
+        "units": 0,
+        "candidates_exposed": 0
+      },
+      "simple_retrieval": {
+        "answer": "editor=vim;editor=emacs;ui.theme=light mode",
+        "status": "PASS",
+        "correct_against_frozen_oracle": true,
+        "evaluated_as_answer": true,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 1,
+        "units": 43,
+        "candidates_exposed": 3
+      },
+      "mncs_memory": {
+        "capsule": {
+          "schema_version": "mncs-memory.answer-capsule/0.1",
+          "status": "PASS",
+          "answer": "editor=emacs",
+          "items": [
+            {
+              "claim_identity": "claim:sha256:219d8e7b74936409a5cfc66457ca4a321a0d4d0c6f971d4f20fb065eae342f4c",
+              "subject": "entity:alice",
+              "topic": "editor",
+              "value": "emacs",
+              "confidence": 95,
+              "valid_from": 30,
+              "stale": false,
+              "supporting_claims": [
+                "claim:sha256:d9424b7882a6a3410dbcae257992b810d6c7a07538a0c0ec66aeb1a01872eda2"
+              ],
+              "supporting_observations": [
+                "observation:superseding-claim"
+              ]
+            }
+          ],
+          "units": 12,
+          "budget": 200,
+          "required_topics_preserved": true,
+          "candidates_exposed": 1,
+          "source_claims_exposed": 1,
+          "escalation": "NONE",
+          "uncertainty": [],
+          "provenance_included": true
+        },
+        "correct_against_frozen_oracle": true,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 0
+      }
+    },
+    {
+      "id": "raw-history",
+      "note": "raw episodes are an explicit alternate interface",
+      "raw_context": {
+        "answer": "Alice prefers dark mode.\nAlice likes a dark interface.\nAlice now prefers light mode.",
+        "status": "UNKNOWN",
+        "correct_against_frozen_oracle": true,
+        "evaluated_as_answer": false,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 3,
+        "units": 84,
+        "candidates_exposed": 3
+      },
+      "simple_retrieval": {
+        "answer": "ui.theme=light mode;ui.theme=dark mode;ui.theme=dark mode",
+        "status": "PASS",
+        "correct_against_frozen_oracle": true,
+        "evaluated_as_answer": true,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 3,
+        "units": 57,
+        "candidates_exposed": 3
+      },
+      "mncs_memory": {
+        "capsule": {
+          "schema_version": "mncs-memory.answer-capsule/0.1",
+          "status": "PASS",
+          "answer": "Alice prefers dark mode.\nAlice likes a dark interface.\nAlice now prefers light mode.",
+          "items": [],
+          "units": 84,
+          "budget": 200,
+          "required_topics_preserved": true,
+          "candidates_exposed": 3,
+          "source_claims_exposed": 0,
+          "escalation": "NONE",
+          "uncertainty": [],
+          "provenance_included": false
+        },
+        "correct_against_frozen_oracle": true,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 0
+      }
+    },
+    {
+      "id": "ambiguous-query",
+      "note": "similar names remain distinct through canonical entities",
+      "raw_context": {
+        "answer": "",
+        "status": "UNKNOWN",
+        "correct_against_frozen_oracle": false,
+        "evaluated_as_answer": false,
+        "required_fact_recall": 0.0,
+        "irrelevant_fact_inclusion": 0,
+        "units": 0,
+        "candidates_exposed": 0
+      },
+      "simple_retrieval": {
+        "answer": "team=compiler;team=reviewer;team=research",
+        "status": "PASS",
+        "correct_against_frozen_oracle": true,
+        "evaluated_as_answer": true,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 0,
+        "units": 41,
+        "candidates_exposed": 3
+      },
+      "mncs_memory": {
+        "capsule": {
+          "schema_version": "mncs-memory.answer-capsule/0.1",
+          "status": "PASS",
+          "answer": "team=compiler",
+          "items": [
+            {
+              "claim_identity": "claim:sha256:e2b289d2b606600a7feecb098e09052233091ce962f76d9e94ae30ddbbaf592f",
+              "subject": "entity:alex-lee",
+              "topic": "team",
+              "value": "compiler",
+              "confidence": 100,
+              "valid_from": 16,
+              "stale": false
+            }
+          ],
+          "units": 13,
+          "budget": 120,
+          "required_topics_preserved": true,
+          "candidates_exposed": 1,
+          "source_claims_exposed": 1,
+          "escalation": "NONE",
+          "uncertainty": [],
+          "provenance_included": false
+        },
+        "correct_against_frozen_oracle": true,
+        "required_fact_recall": 1.0,
+        "irrelevant_fact_inclusion": 0
+      }
+    }
+  ],
+  "aggregate": {
+    "memory_correct": 11,
+    "simple_retrieval_correct": 6,
+    "raw_answerable_by_context_scan": 5,
+    "memory_required_fact_recall": 1.0,
+    "simple_required_fact_recall": 1.0,
+    "raw_required_fact_recall": 0.45454545454545453,
+    "memory_irrelevant_fact_inclusion": 0,
+    "simple_irrelevant_fact_inclusion": 16,
+    "memory_units_total": 280,
+    "simple_units_total": 700,
+    "raw_units_total": 84,
+    "memory_candidates_total": 23,
+    "simple_candidates_total": 33,
+    "raw_candidates_total": 3,
+    "memory_escalation_cases": 2,
+    "memory_unknown_cases": 5,
+    "specialist_invocations": 91
+  },
+  "epistemic_note": "Frozen bounded synthetic corpus; results are comparative observations, not general memory performance claims."
+}

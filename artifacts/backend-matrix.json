@@ -1,0 +1,16 @@
+[
+  {
+    "backend": "mncs-research-bytecode",
+    "compilation": "PASS",
+    "execution": "returned",
+    "artifact_identity": "mncs:compiler:backend-artifact:c1322506e4a39b6802260273415d9803bdb2ba5a812cb1f96c683d35a235d30d",
+    "note": "bounded backend execution of the MNCS rank operator"
+  },
+  {
+    "backend": "mncs-portable-wasm-mvp",
+    "compilation": "PASS",
+    "execution": "returned",
+    "artifact_identity": "mncs:compiler:backend-artifact:885513871af69767e82fd57bfc15b99e07a2cc25282cfd8d50a4762ce1739c31",
+    "note": "bounded backend execution of the MNCS rank operator"
+  }
+]
