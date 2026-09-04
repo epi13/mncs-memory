@@ -51,9 +51,10 @@ jobs:
           persist-credentials: true
 
       - name: Render the committed badge
-        # The reusable workflow and this direct action both carry the same
-        # implementation revision, while the carrier remains independently
-        # bound to the reusable workflow revision above.
+        # The direct action is pinned to the same immutable implementation
+        # revision used inside the reusable workflow. Let the action resolve
+        # its own embedded revision-binding; the carrier revision is recorded
+        # separately below.
         uses: epi13/mncs-actions/actions/render-badge@f6b70a897632e5c077633be7777847ee9c78feab
         with:
           verdict: ${{ needs.mncs.outputs.verdict || 'INVALID' }}
@@ -66,7 +67,6 @@ jobs:
           aggregate-digest: ${{ needs.mncs.outputs['aggregate-digest'] }}
           manifest-digest: ${{ needs.mncs.outputs['manifest-digest'] }}
           carrier-revision: 6d4cfe99cd94351ebd4d5b631aee8c0f2866cca7
-          implementation-revision: f6b70a897632e5c077633be7777847ee9c78feab
 
       - name: Commit the refreshed badge
         run: |
