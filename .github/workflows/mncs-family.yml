@@ -1,0 +1,82 @@
+name: MNCS family verification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: mncs-memory-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  mncs:
+    # Pin the reusable carrier to the reviewed mncs-actions repository head.
+    # Its internal actions are synchronized to the implementation revision
+    # recorded below by mncs-actions/revision-binding.json.
+    uses: epi13/mncs-actions/.github/workflows/mncs-family-verify.yml@6d4cfe99cd94351ebd4d5b631aee8c0f2866cca7
+    with:
+      required-checks: project-tests
+      boundary: mncs-memory-vertical-slice
+      fail-on-unknown: true
+      project-command: python3 scripts/mncs-project-check.py --output .mncs/project-check.json
+      project-check-id: project-tests
+      project-provider: mncs-memory-project
+      project-result-file: .mncs/project-check.json
+      project-evidence-dir: .mncs/project-evidence
+      aggregate-evidence-dir: .mncs/aggregate-evidence
+      badge-label: MNCS memory tests
+      badge-file: docs/mncs-badge.svg
+      badge-sidecar-file: docs/mncs-badge.json
+      carrier-revision: 6d4cfe99cd94351ebd4d5b631aee8c0f2866cca7
+      upload-artifacts: true
+
+  publish-badge:
+    name: Publish committed MNCS badge
+    needs: mncs
+    if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the tested revision
+        # actions/checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: true
+
+      - name: Render the committed badge
+        # The reusable workflow and this direct action both carry the same
+        # implementation revision, while the carrier remains independently
+        # bound to the reusable workflow revision above.
+        uses: epi13/mncs-actions/actions/render-badge@f6b70a897632e5c077633be7777847ee9c78feab
+        with:
+          verdict: ${{ needs.mncs.outputs.verdict || 'INVALID' }}
+          label: MNCS memory tests
+          output-file: docs/mncs-badge.svg
+          sidecar-file: docs/mncs-badge.json
+          repository: ${{ github.repository }}
+          subject-commit: ${{ github.sha }}
+          boundary: mncs-memory-vertical-slice
+          aggregate-digest: ${{ needs.mncs.outputs['aggregate-digest'] }}
+          manifest-digest: ${{ needs.mncs.outputs['manifest-digest'] }}
+          carrier-revision: 6d4cfe99cd94351ebd4d5b631aee8c0f2866cca7
+          implementation-revision: f6b70a897632e5c077633be7777847ee9c78feab
+
+      - name: Commit the refreshed badge
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/mncs-badge.svg docs/mncs-badge.json
+          if git diff --cached --quiet; then
+            echo 'Badge is already current.'
+            exit 0
+          fi
+          git commit -m 'chore: refresh MNCS memory badge'
+          git push origin HEAD:main
