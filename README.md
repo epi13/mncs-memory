@@ -1,5 +1,7 @@
 # MNCS Memory
 
+[![MNCS memory tests](docs/mncs-badge.svg)](https://github.com/epi13/mncs-memory/actions/workflows/mncs-family.yml)
+
 MNCS Memory is a bounded research implementation of an intelligent memory
 subsystem for a general reasoner. The caller asks a semantic question and
 receives a compact answer capsule; it does not normally receive a raw memory
@@ -37,6 +39,18 @@ The benchmark, replay, and backend-matrix artifacts are inspectable JSON.
 `language/mncs/memory/core.mncs`
 links the policy modules and is called by the Rust host for every semantic
 decision; it is not a decorative example.
+
+## MNCS Actions integration
+
+The repository uses the pinned `mncs-actions` family workflow to run the
+bounded vertical-slice test suite, package its result and execution evidence,
+and render the badge above. The declared boundary is intentionally only
+`mncs-memory-vertical-slice`: a `PASS` means `cargo test --test vertical_slice`
+passed. It does not claim full MNCS conformance, rights/provenance review, or
+promotion authority.
+
+The machine-readable badge sidecar is [`docs/mncs-badge.json`](docs/mncs-badge.json).
+Workflow evidence is retained in the corresponding GitHub Actions run artifact.
 
 ## Scope
 
