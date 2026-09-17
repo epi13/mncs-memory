@@ -113,6 +113,8 @@ CellProcessor
 
 RFC 0002 adds explicit semantics for **time-varying effective synaptic state**.
 
+RFC 0001 Section 6.2 separately defines slow, fast, and transient state **inside a memory cell**. RFC 0002 uses similar timescale vocabulary specifically for **synapses**. Cell-internal state and synaptic state MAY influence one another, but implementations MUST NOT treat them as the same state layer.
+
 A synapse remains a first-class persistent graph object. RFC 0002 does not replace that object with an ephemeral weight.
 
 Instead:

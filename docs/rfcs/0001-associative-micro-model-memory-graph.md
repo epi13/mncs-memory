@@ -6,12 +6,14 @@
 **Title:** Associative Micro-Model Memory Graph  
 **Authors:** MNCS Project  
 **Created:** 2026-09-06
+**Updated:** 2026-09-17
+**Related:** RFC 0002 — Multi-Timescale Synaptic Dynamics
 
 ## Abstract
 
 This RFC defines an experimental memory architecture in which persistent machine memory is represented not primarily as records, embeddings, or a single monolithic learned model, but as a dynamic graph of small specialized computational units called **memory cells**.
 
-Each memory cell contains or references a bounded **micro-model** specialized for the information, relationship, behavior, or semantic region represented by that cell.
+Each memory cell contains or references a bounded **micro-model** specialized for the information, relationship, behavior, or semantic region represented by that cell. Learned micro-models SHOULD be treated primarily as **typed probabilistic state-transition operators** rather than miniature language generators: given local state and a stimulus, they emit bounded decision distributions and may propose bounded local state changes.
 
 Memory cells expose local semantic directions called **latent ports**. Ports may remain unconnected, may form explicit connections to ports on neighboring cells, or may become associated with relationships elsewhere in the graph.
 
@@ -29,6 +31,10 @@ The resulting system is intended to support:
 - topology growth;
 - bounded computation;
 - natural reinforcement and decay;
+- calibrated typed decisions;
+- fast local adaptation without global retraining;
+- contrastive and delayed-credit learning from graph operation;
+- physically vectorized execution of logically independent cells;
 - distributed placement; and
 - memory behavior without requiring continual retraining of a monolithic model.
 
@@ -172,6 +178,10 @@ The architecture defined by this RFC SHOULD permit MNCS Memory to:
 12. Allow memory to become increasingly useful as topology develops.
 13. Remain compatible with bounded MNCS execution and capability control.
 14. Permit eventual distributed execution across MNCS Fabric nodes.
+15. Permit learned cells to emit typed probability distributions rather than free-form generated text.
+16. Permit cell-local online adaptation while separating fast state from durable specialization.
+17. Permit calibrated confidence to participate in routing, escalation, and structural evolution.
+18. Permit logically independent cells to be physically batched or vectorized for low-latency execution.
 
 ---
 
@@ -188,7 +198,11 @@ This RFC does not require:
 - every memory cell to contain a neural network;
 - every latent port to terminate at another cell;
 - every association to represent factual truth;
-- global activation for every query.
+- global activation for every query;
+- autoregressive text generation inside every learned cell;
+- one operating-system process or accelerator invocation per cell;
+- reinforcement learning for updates that can be trained directly from immediate supervised outcomes;
+- one global optimizer updating every participating cell on every observation.
 
 This RFC also does not claim that the architecture will outperform conventional retrieval.
 
@@ -247,6 +261,256 @@ The micro-model SHOULD be **attuned to its memory**.
 
 That is, its structure or parameters SHOULD reflect the information represented by its cell rather than attempting to provide general intelligence.
 
+For learned implementations, the preferred abstraction is not a miniature language model. It is a **learned probabilistic state-transition operator**:
+
+```text
+(local state, typed stimulus, activation context)
+                    │
+                    ▼
+              micro-model
+                    │
+        ┌───────────┼───────────┐
+        ▼           ▼           ▼
+ typed decisions  routing     local update
+ distributions    proposal     proposal
+```
+
+The model SHOULD consume bounded machine-native structure and SHOULD emit bounded machine-consumable structure. Natural-language generation MAY exist in a specialist implementation when justified, but it MUST NOT be the assumed interface between memory cells.
+
+### 6.1 Typed Decision Surface
+
+A learned cell SHOULD be able to emit several typed decisions from one local evaluation rather than requiring separate autoregressive requests.
+
+A conceptual decision surface is:
+
+```text
+CellDecision {
+    match: Probability
+    relevance: Probability
+    novelty: Probability
+    contradiction: Probability
+    propagate: Distribution<PortId>
+    write: Probability
+    erase: Probability
+    reinforce: Probability
+    weaken: Probability
+    escalate: Probability
+    status: MATCH | NO_MATCH | PARTIAL | UNKNOWN
+}
+```
+
+This shape is illustrative rather than normative. Different cell classes MAY expose different typed questions.
+
+`write`, `erase`, `reinforce`, and `weaken` are intentionally distinct. A cell may need to add new information without erasing old state, weaken one association while reinforcing another, or decline all durable modification despite high activation.
+
+A bounded categorical or scalar distribution is preferred over an unconstrained generated answer when the consuming component already knows the valid decision space.
+
+### 6.2 Cell-Local Multi-Timescale State
+
+A learned cell MAY maintain multiple timescales of internal state:
+
+```text
+θ_slow        durable specialization
+Δθ_fast       rapidly adapting learned state
+z_transient   activation-epoch state
+```
+
+Conceptually:
+
+```text
+θ_effective(t) = G(θ_slow, Δθ_fast, z_transient(t), stimulus)
+```
+
+`θ_slow` represents the cell's durable specialization. `Δθ_fast` represents bounded adaptation that may survive multiple evaluations but has not necessarily earned durable consolidation. `z_transient` represents immediate context such as recent activation, inhibition, eligibility, local gain, or cooldown.
+
+These are **cell-internal** timescales. RFC 0002 defines the corresponding multi-timescale behavior of **synapses**. Implementations MUST keep the two concepts distinguishable even when one influences the other.
+
+Fast cell state MUST NOT silently become authoritative evidence. Promotion into durable state requires an attributable consolidation event.
+
+### 6.3 Calibration
+
+When a micro-model emits probabilities, those probabilities SHOULD be treated as computational state rather than decorative confidence labels.
+
+For an output class with predicted probability `p`, repeated comparable predictions near `p` SHOULD empirically approach the corresponding observed success frequency where the evaluation population is sufficiently large and stable.
+
+Implementations SHOULD measure calibration using appropriate proper scoring rules and diagnostics, for example:
+
+```text
+Brier score
+log loss
+reliability curves
+expected calibration error
+class-conditional calibration
+```
+
+No one metric is mandated by this RFC.
+
+Calibration MAY influence:
+
+```text
+routing strength
+activation budget
+escalation
+update magnitude
+candidate-synapse promotion
+cell split proposals
+cell merge proposals
+processor replacement
+```
+
+Confidence MUST remain distinct from factual truth and provenance quality.
+
+### 6.4 Surprise-Gated Online Adaptation
+
+A learned micro-model SHOULD NOT be required to update on every observation.
+
+The cell MAY derive a bounded **surprise** or prediction-error signal from the difference between its prior local prediction and a subsequently observed or verified outcome.
+
+Conceptually:
+
+```text
+observation
+    │
+    ▼
+local prediction
+    │
+    ▼
+prediction error / surprise
+    │
+    ├── low  → no learned update
+    ├── mid  → bounded fast update
+    └── high → bounded fast update + consolidation candidate
+```
+
+A learning rate MAY therefore depend on more than surprise alone:
+
+```text
+η_t = H(
+    surprise,
+    calibration,
+    provenance_quality,
+    evidence_state,
+    cell_plasticity,
+    update_budget
+)
+```
+
+Surprise MUST NOT imply truth. Unexpected low-quality or adversarial input MUST NOT automatically produce a large durable update.
+
+### 6.5 Immediate Supervision and Proper Scoring
+
+When the correctness of a typed decision becomes directly observable, the implementation SHOULD prefer ordinary supervised or self-supervised updates over reinforcement learning.
+
+For a binary decision, examples include:
+
+```text
+Brier:   L = (p - y)^2
+Log:     L = -log P(y)
+```
+
+Equivalent proper scoring rules MAY be used for categorical or structured outputs.
+
+The objective is not merely to make the highest-probability class correct. The probability distribution itself SHOULD become informative enough for routing and risk policy.
+
+### 6.6 Local Contrastive Learning
+
+Graph operation MAY automatically produce local contrastive examples.
+
+For example, if two candidate routes were plausible but later evidence shows that one contributed useful downstream evidence while another did not:
+
+```text
+(local_state, successful_route)
+    >
+(local_state, unsuccessful_route)
+```
+
+This pair MAY be used as a bounded local learning signal without requiring a human-labeled global training example.
+
+Contrastive signals MAY arise from:
+
+```text
+successful vs failed retrieval
+verified vs rejected relation proposals
+useful vs irrelevant propagation
+resolved vs unresolved escalation
+stable vs reverted local updates
+```
+
+Contrastive learning MUST preserve the evidence and outcome that created the preference pair. Self-generated preference loops MUST be guarded against echo reinforcement.
+
+### 6.7 Eligibility and Delayed Credit
+
+Some useful outcomes become observable only after activation has propagated through several cells.
+
+Cells and synapses MAY therefore maintain bounded **eligibility traces** identifying recent decisions that are plausible contributors to a later result.
+
+Conceptually:
+
+```text
+A → F → Q → result
+
+eligibility:
+A = 0.24
+F = 0.71
+Q = 0.96
+```
+
+A later verified outcome MAY reinforce or weaken those decisions according to the trace and the implementation's credit-assignment policy.
+
+Eligibility is not proof of causation. Trace magnitude SHOULD decay and MUST remain bounded.
+
+Where a delayed scalar or categorical outcome is the only available supervision, reinforcement-style updates MAY be appropriate. They SHOULD remain local whenever possible rather than requiring backpropagation through the complete memory graph.
+
+### 6.8 Fast-to-Slow Consolidation
+
+Fast learned state MUST have an explicit path either to decay or to consolidation.
+
+A conceptual lifecycle is:
+
+```text
+observation
+    ↓
+fast update
+    ↓
+repeated validation / utility / stability
+    ↓
+consolidation proposal
+    ↓
+provenance + evidence check
+    ↓
+slow-state update
+```
+
+Consolidation SHOULD consider whether a fast adaptation remains useful across contexts rather than merely whether it occurred frequently.
+
+A failed or contradicted fast adaptation SHOULD be revertible without reconstructing the entire cell from scratch.
+
+### 6.9 Logical Independence, Physical Vectorization
+
+A `MemoryCell` is a logical unit of specialization and provenance. It MUST NOT imply one operating-system process, one neural-network object, or one accelerator launch per cell.
+
+Implementations SHOULD be permitted to store compatible parameter blocks in contiguous or otherwise batchable form:
+
+```text
+node 17 → θ[17]
+node 32 → θ[32]
+node 81 → θ[81]
+```
+
+and evaluate a sparse active set together:
+
+```text
+active = [17, 32, 81]
+
+batched_eval(stimulus, θ[active])
+```
+
+Thus:
+
+> **Micro-models SHOULD be semantically independent while remaining computationally vectorizable.**
+
+Physical batching MUST NOT erase per-cell identity, provenance, rights, calibration history, update lineage, or bounded resource accounting.
+
 ---
 
 ## 7. Stimulus
@@ -276,7 +540,7 @@ Stimulus {
 }
 ```
 
-Cells MUST be permitted to return:
+Cells MUST be permitted to return a bounded typed outcome such as:
 
 ```text
 MATCH
@@ -285,9 +549,9 @@ PARTIAL
 UNKNOWN
 ```
 
-or equivalent typed states.
+and MAY additionally return a typed decision bundle as defined in Section 6.1.
 
-`UNKNOWN` is a first-class valid outcome.
+`UNKNOWN` is a first-class valid outcome. A probability distribution MUST NOT be collapsed into artificial certainty merely because a downstream consumer prefers a single label.
 
 ---
 
@@ -666,6 +930,9 @@ strengthen synapse
 weaken synapse
 create candidate synapse
 promote candidate synapse
+update cell fast state
+consolidate cell slow state
+recalibrate cell output
 split cell
 merge cells
 create cell
@@ -691,9 +958,9 @@ query
 A → C → F → AnswerCapsule
 ```
 
-If this path repeatedly contributes relevant evidence, the appropriate synapses MAY accumulate reinforcement.
+If this path repeatedly contributes relevant evidence, the appropriate synapses MAY accumulate reinforcement. Cell-local decisions that contributed to the path MAY also receive bounded credit through explicit eligibility traces.
 
-Reinforcement SHOULD be based on observable utility rather than mere frequency.
+Reinforcement SHOULD be based on observable utility rather than mere frequency. Where an outcome is immediately supervised, proper scoring or direct supervised learning SHOULD be preferred over delayed reinforcement.
 
 Repeated activation alone does not prove usefulness.
 
@@ -753,6 +1020,7 @@ Consolidation MAY:
 ```text
 create a new cell
 specialize an existing cell
+promote validated fast cell state into slow state
 split a broad cell
 merge redundant cells
 create a relationship abstraction
@@ -806,6 +1074,8 @@ devil's club
 
 if this improves bounded recall and processing.
 
+Persistent calibration error, multimodal residuals, or repeatedly incompatible fast adaptations MAY also provide evidence that one cell is representing multiple specializations and should be split.
+
 The original cell MAY remain as a higher-order abstraction.
 
 ---
@@ -825,7 +1095,7 @@ claim state
 processor compatibility
 ```
 
-A merge MUST NOT destroy the evidence histories of either source cell.
+A merge MUST NOT destroy the evidence histories of either source cell. Well-calibrated agreement across comparable stimuli MAY support a merge proposal, but matching top-1 decisions alone is insufficient evidence that two cells are behaviorally equivalent.
 
 ---
 
@@ -846,6 +1116,10 @@ Conceptually, the manager operates a memory metabolism:
                      │
                      ▼
              local evaluation
+                     │
+          typed probabilistic decisions
+                     │
+             bounded fast updates
                      │
                      ▼
           sparse graph propagation
@@ -912,7 +1186,7 @@ how those structures change through experience
 
 Every durable graph mutation MUST be attributable.
 
-At minimum, a mutation SHOULD record:
+At minimum, a durable graph or cell-state mutation SHOULD record:
 
 ```text
 producer
@@ -923,6 +1197,9 @@ new state
 logical time
 reason
 confidence
+update kind
+calibration / loss signal when applicable
+eligibility or contrast source when applicable
 ```
 
 A learned association without explainable lineage SHOULD remain lower-confidence or experimental.
@@ -981,7 +1258,7 @@ initial graph state
 
 MNCS Memory SHOULD be capable of explaining how a current topology was produced.
 
-Learned models may prevent bit-identical reconstruction in all implementations, but the provenance chain MUST remain inspectable.
+Learned models may prevent bit-identical reconstruction in all implementations, but the provenance chain MUST remain inspectable. Implementations that update fast cell state online SHOULD log enough ordered update information to explain which observations, scoring signals, or delayed outcomes caused the current effective state.
 
 ---
 
@@ -1061,6 +1338,8 @@ Cell E → remote specialist
 
 The semantic graph MUST not depend on one execution backend.
 
+Multiple logically distinct cells MAY share a single physical execution kernel, parameter arena, SIMD batch, GPU launch, or accelerator-resident block when doing so preserves cell identity and accounting. Execution topology is therefore not required to mirror semantic graph topology.
+
 This gives MNCS Memory a natural way to apply pressure to the broader MNCS language and execution ecosystem.
 
 ---
@@ -1134,6 +1413,11 @@ The exact implementation is deferred, but the conceptual types are:
 
 ```text
 MemoryCell
+MicroModelState
+CellDecision
+DecisionDistribution
+AdaptationEvent
+EligibilityTrace
 LatentPort
 Synapse
 Relationship
@@ -1154,6 +1438,22 @@ struct MemoryCell {
     evidence: Vec<EvidenceRef>,
     ports: Vec<PortId>,
     state: CellState,
+    model_state: Option<MicroModelState>,
+    calibration: Option<CalibrationState>,
+}
+
+struct MicroModelState {
+    slow: StateRef,
+    fast: Option<StateRef>,
+    transient: Option<StateRef>,
+    version: StateVersion,
+}
+
+struct CellDecision {
+    status: DecisionStatus,
+    outputs: Vec<TypedDistribution>,
+    update: Option<AdaptationProposal>,
+    eligibility: Option<EligibilityTrace>,
 }
 
 struct LatentPort {
@@ -1221,6 +1521,26 @@ Implementations cannot require every cell to share one universal latent coordina
 
 A semantically meaningful port may exist without a current graph neighbor.
 
+### Typed-decision invariant
+
+A learned cell may emit bounded probability distributions without serializing those decisions through natural language.
+
+### Calibration invariant
+
+Probabilistic confidence is measurable behavior and MUST remain distinguishable from factual truth, provenance quality, and synaptic strength.
+
+### State-timescale invariant
+
+Cell-internal slow, fast, and transient state MUST remain distinguishable from one another and from RFC 0002 synaptic timescales.
+
+### Update-provenance invariant
+
+Durable promotion of learned fast state into slow state has attributable lineage.
+
+### Logical-physical separation invariant
+
+Cell identity and provenance do not depend on one process, model object, thread, device invocation, or accelerator kernel per cell.
+
 ---
 
 ## 36. Experimental Hypotheses
@@ -1251,6 +1571,22 @@ Useful semantic composition can emerge without requiring every memory cell to sh
 
 System-level recall quality can exceed the capability of individual participating cells because useful behavior is encoded partly in graph topology.
 
+### H7 — Typed decision efficiency
+
+For bounded memory operations, directly emitting typed decision distributions can achieve lower latency and lower execution cost than serializing equivalent decisions through autoregressive language generation.
+
+### H8 — Calibrated routing
+
+Measured calibration can improve routing, escalation, and update policy relative to using uncalibrated top-1 scores alone.
+
+### H9 — Local online adaptation
+
+Surprise-gated fast updates can improve cell specialization under changing data without requiring global retraining and without unacceptable catastrophic drift.
+
+### H10 — Vectorized micro-model execution
+
+Logically independent learned cells can be physically batched while preserving per-cell identity, provenance, and update semantics, materially reducing per-cell execution overhead.
+
 Any of these hypotheses MAY prove false without invalidating the entire MNCS Memory project.
 
 ---
@@ -1274,15 +1610,40 @@ useful recall
 irrelevant context
 activation count
 compute consumed
-latency
+end-to-end latency
+per-cell inference latency
+update latency
+active-cell throughput
 memory footprint
 graph growth
 false associations
 UNKNOWN correctness
+Brier score / log loss where applicable
+calibration error / reliability
+surprise-gate selectivity
+fast-state update rate
+fast-to-slow consolidation rate
+adaptation reversion rate
+contrastive-pair utility
+delayed-credit utility
 provenance completeness
 replayability
 general-reasoner escalation rate
 ```
+
+Learned micro-model evaluation SHOULD include ablations against at least:
+
+```text
+no online adaptation
+uncalibrated scores
+single-state parameters
+update every observation
+no contrastive signal
+no delayed credit
+unbatched per-cell execution
+```
+
+where those comparisons are applicable to the implementation.
 
 Particular attention MUST be paid to runaway associative behavior.
 
@@ -1330,6 +1691,26 @@ The memory manager accumulates enough semantics that cells become passive record
 
 A small stimulus causes graph-wide activation.
 
+### Calibration drift
+
+A cell continues emitting numerically confident probabilities whose observed success frequency no longer matches those probabilities.
+
+### Plasticity runaway
+
+Surprising, noisy, adversarial, or low-quality observations cause excessive fast updates or repeated durable consolidation.
+
+### Update starvation
+
+A cell becomes effectively frozen because conservative gating prevents useful new evidence from changing its fast or slow specialization.
+
+### Compute fragmentation
+
+Logical micro-model independence is implemented as thousands of tiny physical invocations whose launch and scheduling overhead dominates useful computation.
+
+### Credit echo
+
+Self-generated contrastive pairs or eligibility traces repeatedly reward a path because of outcomes caused mainly by the same path's prior reinforcement rather than external utility.
+
 These are architectural failures, not merely optimization problems.
 
 ---
@@ -1362,6 +1743,11 @@ Define:
 
 ```text
 MemoryCell
+MicroModelState
+CellDecision
+DecisionDistribution
+AdaptationEvent
+EligibilityTrace
 LatentPort
 Synapse
 Activation
@@ -1422,6 +1808,22 @@ relationship abstractions
 
 Introduce tiny learned specialists where benchmarks justify them.
 
+A Phase 6 implementation SHOULD progress through bounded capabilities rather than immediately enabling unrestricted continual learning:
+
+```text
+6A typed probabilistic decision outputs
+6B measured calibration
+6C explicit slow / fast / transient cell state
+6D surprise-gated fast updates
+6E proper-scoring updates for immediate supervision
+6F local contrastive examples from graph outcomes
+6G bounded eligibility traces for delayed outcomes
+6H fast-to-slow consolidation with provenance
+6I physically batched / vectorized sparse execution
+```
+
+Each capability SHOULD be benchmarked against a simpler baseline before becoming a default execution path.
+
 ### Phase 7 — Distributed Cells
 
 Permit cell placement and activation through MNCS Fabric.
@@ -1440,6 +1842,12 @@ durable evidence
     │
     ▼
 specialized memory cells
+    │
+    ▼
+typed probabilistic decisions
+    │
+    ▼
+slow / fast / transient local state
     │
     ▼
 local latent structure
@@ -1485,6 +1893,15 @@ The following intentionally remain unresolved:
 13. What subset of graph evolution can be expressed directly in `mncs-language`?
 14. Can the manager itself eventually be expressed primarily as MNCS programs rather than host-language orchestration?
 15. How much intelligence emerges from topology before learned cell models become necessary?
+16. Which typed decision outputs should be universal across learned cells, and which should remain cell-class specific?
+17. Which calibration metrics remain meaningful under non-stationary online adaptation?
+18. What fast-state representation provides useful adaptation without making cell state too expensive to update or move?
+19. What surprise signal best separates genuinely novel evidence from noise, adversarial input, and expected variance?
+20. What minimum evidence should permit fast state to consolidate into durable slow state?
+21. How should local contrastive pairs be sampled to avoid self-reinforcing preference loops?
+22. How should eligibility traces divide delayed credit between cell decisions and RFC 0002 synaptic dynamics?
+23. When does persistent calibration error imply recalibration, processor replacement, cell splitting, or topology change?
+24. How should compatible active cells be grouped for vectorized execution without creating excessive padding, synchronization, or migration cost?
 
 ---
 
@@ -1514,6 +1931,24 @@ RFC 0001 should be considered experimentally implemented when `mncs-memory` can 
 
 Distribution, heterogeneous learned models, and automatic topology optimization SHOULD remain later milestones rather than blockers for initial RFC conformance.
 
+When an implementation claims the **Phase 6 learned micro-model extension**, it SHOULD additionally demonstrate:
+
+```text
+[ ] At least one learned cell emits typed probability distributions
+[ ] Calibration is measured with a proper scoring rule and reliability diagnostic
+[ ] Slow, fast, and transient cell state are explicitly distinguishable
+[ ] Fast adaptation is bounded and can decline to update
+[ ] Surprise or prediction error participates in update gating
+[ ] Immediate supervised outcomes can update without reinforcement learning
+[ ] At least one graph outcome produces a provenance-linked contrastive example
+[ ] At least one delayed outcome can assign bounded eligibility-based credit
+[ ] Fast state can decay or be reverted without corrupting durable evidence
+[ ] Fast-to-slow consolidation records provenance and validation evidence
+[ ] Logical cell identity survives physically batched/vectorized execution
+[ ] Batched execution is benchmarked against per-cell invocation
+[ ] Calibration drift and plasticity runaway have explicit tests or monitors
+```
+
 ---
 
 ## 44. Final Principle
@@ -1538,6 +1973,12 @@ not every learned direction must already have a neighbor
 relationships can themselves relate
 
 only locally relevant memory needs to wake up
+
+learned cells can adapt quickly without immediately rewriting durable memory
+
+probabilities can remain calibrated machine-readable state rather than prose confidence
+
+logically independent cells can execute together physically
 
 and the structure of the network is itself part of what MNCS remembers
 ```
