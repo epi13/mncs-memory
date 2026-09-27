@@ -1,0 +1,172 @@
+mncs 0.18;
+
+// mncs.memory.capsule.v1 — answer gating, budget policy, escalation,
+// and capsule status resolution.
+//
+// Ports of `language/mncs/memory/query.mncs`, `budget.mncs`, and
+// `escalation.mncs` (0.6 era) plus the status-resolution logic from
+// the historical query pipeline. Uncertainty travels as reason codes
+// (see mncs.memory.codes); the host renders the strings.
+
+module mncs.memory.capsule.v1;
+
+use mncs.memory.codes.v1 as codes;
+use mncs.test.assertions;
+use mncs.test.suite;
+
+fn gate(confidence: i64, minimum_confidence: i64, freshness: i64, freshness_required: i64) -> (result: i64) {
+    if confidence < 0 {
+        return codes.ans_unknown();
+    }
+    if minimum_confidence < 0 {
+        return codes.ans_unknown();
+    }
+    if freshness_required > 0 && freshness < freshness_required {
+        return codes.ans_unknown();
+    }
+    if confidence < minimum_confidence {
+        return codes.ans_unknown();
+    }
+    return codes.ans_pass();
+}
+
+fn decide_budget(required_units: i64, budget_units: i64, required_items: i64) -> (result: i64) {
+    if required_units < 0 {
+        return codes.budget_unknown();
+    }
+    if budget_units < 0 {
+        return codes.budget_unknown();
+    }
+    if required_items < 0 {
+        return codes.budget_unknown();
+    }
+    if required_units <= budget_units {
+        return codes.budget_fits();
+    }
+    return codes.budget_insufficient();
+}
+
+fn decide_escalation(layer: i64, confidence: i64) -> (result: i64) {
+    if confidence < 0 {
+        return codes.esc_unknown();
+    }
+    if confidence >= 85 {
+        return codes.esc_none();
+    }
+    if layer == 0 || layer == 1 {
+        return codes.esc_specialist();
+    }
+    if layer == 2 || layer == 3 {
+        return codes.esc_general();
+    }
+    return codes.esc_unknown();
+}
+
+record StatusOut { status: i64, uncertainty: i64 }
+
+// Layers: 0 deterministic, 1 tiny, 2 specialist, 3 larger, 4 general.
+// Uncertainty: 0 none, 1 unresolved_conflict, 2 no_eligible,
+// 3 over_budget, 4 conflict_inspect, 5 unknown_state.
+fn unc_none() -> (code: i64) {
+    return 0;
+}
+
+fn unc_conflict() -> (code: i64) {
+    return 1;
+}
+
+fn unc_no_eligible() -> (code: i64) {
+    return 2;
+}
+
+fn unc_budget() -> (code: i64) {
+    return 3;
+}
+
+fn unc_inspect() -> (code: i64) {
+    return 4;
+}
+
+fn unc_state() -> (code: i64) {
+    return 5;
+}
+
+// Status resolution after selection. `gated` is the native gate
+// outcome over the selected claims; budget/escaltion inputs arrive as
+// decided codes. A deliberate conflict-inspection takes precedence
+// over budget pressure (it explains why UNKNOWN is the RIGHT answer);
+// budget precedes unknown-state.
+fn resolve_status(gated: i64, budget: i64, units_fit: bool, conflict_inspect: bool, unknown_state: bool, include_uncertainty: bool) -> (result: StatusOut) {
+    if gated == codes.ans_fail() {
+        return StatusOut { status: gated, uncertainty: unc_none() };
+    }
+    if conflict_inspect {
+        return StatusOut { status: codes.ans_unknown(), uncertainty: unc_inspect() };
+    }
+    if budget != codes.budget_fits() || !units_fit {
+        return StatusOut { status: codes.ans_unknown(), uncertainty: unc_budget() };
+    }
+    if gated == codes.ans_pass() {
+        return StatusOut { status: gated, uncertainty: unc_none() };
+    }
+    if include_uncertainty && unknown_state {
+        return StatusOut { status: gated, uncertainty: unc_state() };
+    }
+    return StatusOut { status: gated, uncertainty: unc_none() };
+}
+
+// Whether the full rendered answer may be emitted, or only a status
+// marker truncated to budget by the host. A deliberate
+// conflict-inspection keeps its rendered conflict set when it fits:
+// UNKNOWN stays the status, but the answer is the inspection payload,
+// mirroring the historical query pipeline.
+fn fit_marker(status: i64, answer_len: i64, budget: i64, conflict_inspect: bool) -> (marker: i64) {
+    if status == codes.ans_pass() && answer_len <= budget {
+        return codes.ans_pass();
+    }
+    if status == codes.ans_fail() {
+        return codes.ans_fail();
+    }
+    if conflict_inspect && answer_len <= budget {
+        return codes.ans_pass();
+    }
+    return codes.ans_unknown();
+}
+
+test gates_and_budgets_match_oracle() -> (result: TestResult) {
+    if gate(90, 85, 100, 0) == codes.ans_pass() && gate(80, 85, 100, 0) == codes.ans_unknown() {
+        if gate(90, 85, 0, 10) == codes.ans_unknown() && gate(-1, 85, 100, 0) == codes.ans_unknown() {
+            if decide_budget(100, 120, 2) == codes.budget_fits() && decide_budget(200, 120, 2) == codes.budget_insufficient() {
+                if decide_budget(-1, 120, 2) == codes.budget_unknown() {
+                    if decide_escalation(0, 90) == codes.esc_none() && decide_escalation(0, 60) == codes.esc_specialist() {
+                        if decide_escalation(2, 60) == codes.esc_general() && decide_escalation(4, 60) == codes.esc_unknown() {
+                            return from_assertion(equals_i64(1, 1, 401));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return from_assertion(equals_i64(0, 1, 401));
+}
+
+test status_resolution_prefers_inspection() -> (result: TestResult) {
+    let clean: StatusOut = resolve_status(codes.ans_pass(), codes.budget_fits(), true, false, false, false);
+    let strained: StatusOut = resolve_status(codes.ans_pass(), codes.budget_insufficient(), true, false, false, false);
+    let examined: StatusOut = resolve_status(codes.ans_pass(), codes.budget_insufficient(), false, true, true, true);
+    let gated: StatusOut = resolve_status(codes.ans_unknown(), codes.budget_fits(), true, false, true, true);
+    if clean.status == codes.ans_pass() && clean.uncertainty == unc_none() {
+        if strained.status == codes.ans_unknown() && strained.uncertainty == unc_budget() {
+            if examined.status == codes.ans_unknown() && examined.uncertainty == unc_inspect() {
+                if gated.status == codes.ans_unknown() && gated.uncertainty == unc_state() {
+                    if fit_marker(codes.ans_pass(), 100, 120, false) == codes.ans_pass() && fit_marker(codes.ans_pass(), 200, 120, false) == codes.ans_unknown() {
+                        if fit_marker(codes.ans_unknown(), 100, 120, true) == codes.ans_pass() && fit_marker(codes.ans_unknown(), 200, 120, true) == codes.ans_unknown() && fit_marker(codes.ans_unknown(), 100, 120, false) == codes.ans_unknown() {
+                            return from_assertion(equals_i64(1, 1, 402));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return from_assertion(equals_i64(0, 1, 402));
+}

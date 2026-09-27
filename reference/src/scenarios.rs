@@ -31,6 +31,6 @@ pub struct ReplayScenario {
 }
 
 pub fn load() -> Corpus {
-    serde_json::from_str(include_str!("../corpus/adversarial.json"))
+    serde_json::from_str(include_str!("../../corpus/adversarial.json"))
         .expect("checked-in adversarial corpus must be valid")
 }

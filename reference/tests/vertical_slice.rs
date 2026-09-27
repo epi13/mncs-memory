@@ -10,7 +10,11 @@ use mncs_model::{ExecutionStatus, TransformationStatus};
 fn language_root() -> PathBuf {
     std::env::var_os("MNCS_MEMORY_LANGUAGE_ROOT")
         .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("language"))
+        .unwrap_or_else(|| {
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("..")
+                .join("language")
+        })
 }
 
 fn corpus_engine() -> MemoryEngine {

@@ -1,0 +1,107 @@
+mncs 0.18;
+
+// mncs.memory.recall.v1 — deterministic relevance scoring and bounded
+// selection.
+//
+// The score formula is preserved exactly from the historical policy,
+// including intentional WRAPPING arithmetic: inputs are bounded
+// nonnegative features, so `topic*1000 + subject*100 + confidence +
+// freshness` stays in range by construction and wraps rather than
+// traps on violation. Negative inputs score 0 (host supplies
+// nonnegative features; the guard makes the contract total).
+//
+// Selection runs over host-ordered candidates (score descending,
+// identity ascending — string ordering is generic plumbing, not memory
+// semantics). The native policy: required topics first (one claim per
+// required topic, highest-ranked), then fill to the supporting-claim
+// cap. Inputs are distinct claims by construction (the host builds one
+// entry per claim); the cap arithmetic never exceeds the bound.
+
+module mncs.memory.recall.v1;
+
+use mncs.memory.codes.v1 as codes;
+use mncs.test.assertions;
+use mncs.test.suite;
+
+fn score(topic_match: i64, subject_match: i64, confidence: i64, freshness: i64) -> (result: i64) {
+    if topic_match < 0 || subject_match < 0 || confidence < 0 || freshness < 0 {
+        return 0;
+    }
+    return topic_match *% 1000 +% subject_match *% 100 +% confidence +% freshness;
+}
+
+record SelectOut { mask: [i64; 64], count: i64 }
+
+// Recall width: at most 64 ranked candidates per selection. Larger
+// corpora filter before ranking; widening the window is Data/
+// collections pressure, not a silent truncation (the host refuses
+// wider inputs explicitly).
+fn select_claims(n: i64, required_first: [i64; 64], cap: i64) -> (result: SelectOut) {
+    let empty: [i64; 64] = [0; 64];
+    // Pass 1: required topics, highest rank wins by input order.
+    iterate k over required_first carrying acc: SelAcc = SelAcc { mask: empty, count: 0 } {
+        next acc = take_required(acc, required_first, k as i64, n);
+    }
+    // Pass 2: fill to cap in rank order.
+    iterate k2 over required_first carrying acc2: SelAcc = acc {
+        next acc2 = take_fill(acc2, k2 as i64, n, cap);
+    }
+    return SelectOut { mask: acc2.mask, count: acc2.count };
+}
+
+record SelAcc { mask: [i64; 64], count: i64 }
+
+fn take_required(acc: SelAcc, required_first: [i64; 64], i: i64, n: i64) -> (result: SelAcc) {
+    if i >= n {
+        return acc;
+    }
+    let flags: [i64; 64] = required_first;
+    if flags[i as u64] == 1 {
+        let taken: [i64; 64] = replace(acc.mask, i as u64, 1);
+        return SelAcc { mask: taken, count: acc.count + 1 };
+    }
+    return acc;
+}
+
+fn take_fill(acc: SelAcc, i: i64, n: i64, cap: i64) -> (result: SelAcc) {
+    if i >= n {
+        return acc;
+    }
+    if acc.count >= cap {
+        return acc;
+    }
+    let taken: [i64; 64] = acc.mask;
+    if taken[i as u64] == 1 {
+        return acc;
+    }
+    let filled: [i64; 64] = replace(taken, i as u64, 1);
+    return SelAcc { mask: filled, count: acc.count + 1 };
+}
+
+test score_matches_oracle_formula() -> (result: TestResult) {
+    // topic*1000 + subject*100 + confidence + freshness.
+    if score(1, 1, 90, 100) == 1290 {
+        if score(2, 0, 85, 100) == 2185 {
+            if score(0, 0, 0, 0) == 0 && score(-1, 1, 90, 100) == 0 {
+                return from_assertion(equals_i64(1, 1, 301));
+            }
+        }
+    }
+    return from_assertion(equals_i64(0, 1, 301));
+}
+
+test selection_prefers_required_then_fills() -> (result: TestResult) {
+    // 4 candidates, candidate 2 holds the required topic, cap 2:
+    // required first, then rank fill.
+    let base: [i64; 64] = [0; 64];
+    let req: [i64; 64] = replace(base, 2, 1);
+    let out: SelectOut = select_claims(4, req, 2);
+    let mask: [i64; 64] = out.mask;
+    if out.count == 2 && mask[2] == 1 && mask[0] == 1 && mask[1] == 0 && mask[3] == 0 {
+        let capped: SelectOut = select_claims(4, base, 0);
+        if capped.count == 0 {
+            return from_assertion(equals_i64(1, 1, 302));
+        }
+    }
+    return from_assertion(equals_i64(0, 1, 302));
+}

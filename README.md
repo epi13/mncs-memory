@@ -25,29 +25,45 @@ memory service. It currently provides:
 
 ## Run it
 
-The Rust host pins the executable MNCS Language crates to current main snapshot
-`8447dad057107d812fa7f46af92f70ded74ee457`.
+The canonical implementation is native MNCS with a thin host bridge.
+Every semantic decision (disposition, claim states, relevance scoring,
+selection, budget, gating, escalation, belief) is executed from
+`native/mncs/memory/` through the current toolchain; the host owns
+only files, digests, text handling, and the CLI.
 
 ```bash
-cargo test --test vertical_slice
-cargo run --bin mncs-memory-benchmark -- language artifacts/benchmark.json
-cargo run --bin mncs-memory-replay -- language artifacts/replay.json
-cargo run --bin mncs-memory-backends -- language artifacts/backend-matrix.json
+export MNCS_LANGUAGE_ROOT=../mncs-language
+export MNCS_TEST_NATIVE=../mncs-test/native
+export MNCS_BIN=../mncs-language/target/debug/mncs
+export MNCS_CACHE_DIR=~/.cache/mncs-memory
+python3 -m unittest tests.test_memory
+python3 tools/mncs_memory.py benchmark --corpus corpus/adversarial.json
+python3 scripts/mncs-project-check.py --output /tmp/memory-check.json
 ```
 
-The benchmark, replay, and backend-matrix artifacts are inspectable JSON.
-`language/mncs/memory/core.mncs`
-links the policy modules and is called by the Rust host for every semantic
-decision; it is not a decorative example.
+The historical Rust implementation is preserved as an executable
+oracle under `reference/` (9/9 of its own suite green) but is not on
+any production path and is not gated by conformance. See
+[`docs/RUST_RETIREMENT.md`](docs/RUST_RETIREMENT.md).
+
+```text
+native/mncs/memory/   canonical semantics (codes, lifecycle, recall, capsule)
+tools/memory/         thin host bridge (JSONL store, specialists, engine, CLI)
+tools/mncs_memory.py  CLI entry point
+tests/test_memory.py  host suite (oracle parity, corpus, properties)
+corpus/adversarial.json  frozen 21-observation / 11-query fixture
+reference/            historical Rust oracle (non-canonical)
+language/             0.6-era policy sources (superseded; oracle input only)
+```
 
 ## MNCS Actions integration
 
 The repository uses the pinned `mncs-actions` family workflow to run the
-bounded vertical-slice test suite, package its result and execution evidence,
-and render the badge above. The declared boundary is intentionally only
-`mncs-memory-vertical-slice`: a `PASS` means `cargo test --test vertical_slice`
-passed. It does not claim full MNCS conformance, rights/provenance review, or
-promotion authority.
+canonical suites, package results and execution evidence, and render the
+badge above. The declared boundary is intentionally only
+`mncs-memory-vertical-slice`: a `PASS` means the host suites plus the
+native MNCS semantic suites passed. It does not claim full MNCS
+conformance, rights/provenance review, or promotion authority.
 
 The machine-readable badge sidecar is [`docs/mncs-badge.json`](docs/mncs-badge.json).
 Workflow evidence is retained in the corresponding GitHub Actions run artifact.

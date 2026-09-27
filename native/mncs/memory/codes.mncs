@@ -1,0 +1,177 @@
+mncs 0.18;
+
+// mncs.memory.codes.v1 — the shared numeric vocabulary of mncs-memory.
+//
+// Mirrors: `tools/memory/codes.py` (host transport) and the historical
+// Rust `model.rs` enums (oracle). The native functions are the
+// authority; mirrors exist so other layers speak the same numbers.
+//
+// Relation (new observation vs existing claim): 0 unrelated, 1 same,
+// 2 refines, 3 contradicts, 4 supersedes, 5 ambiguous.
+// Evidence: 0 direct, 1 supported, 2 weak, 3 missing.
+// Disposition (ingestion outcome): 0 new, 1 duplicate, 2 refinement,
+// 3 contradiction, 4 supersession, 5 unknown.
+// ClaimState (observable belief status): 0 current, 1 refined,
+// 2 superseded, 3 contradicted, 4 unresolved, 5 duplicate, 6 unknown,
+// 7 invalidated. States are never collapsed into truth values.
+// Answer: 0 pass, 1 unknown, 2 fail.
+// Budget: 0 fits, 1 insufficient, 2 unknown.
+// Escalation: 0 none, 1 specialist, 2 general_reasoner, 3 unknown.
+// Kind: 0 preference, 1 fact, 2 decision, 3 event, 4 noise.
+// Intent: 0 what_should_i_know_before, 1 what_is_known_about,
+// 2 what_changed, 3 what_conflicts_with, 4 what_supports,
+// 5 raw_episodes, 6 uncertainty.
+// Uncertainty reasons: 0 none, 1 unresolved_conflict, 2 no_eligible,
+// 3 over_budget, 4 conflict_inspect, 5 unknown_state.
+
+module mncs.memory.codes.v1;
+
+use mncs.test.assertions;
+use mncs.test.suite;
+
+fn rel_unrelated() -> (code: i64) {
+    return 0;
+}
+
+fn rel_same() -> (code: i64) {
+    return 1;
+}
+
+fn rel_refines() -> (code: i64) {
+    return 2;
+}
+
+fn rel_contradicts() -> (code: i64) {
+    return 3;
+}
+
+fn rel_supersedes() -> (code: i64) {
+    return 4;
+}
+
+fn rel_ambiguous() -> (code: i64) {
+    return 5;
+}
+
+fn ev_direct() -> (code: i64) {
+    return 0;
+}
+
+fn ev_supported() -> (code: i64) {
+    return 1;
+}
+
+fn ev_weak() -> (code: i64) {
+    return 2;
+}
+
+fn ev_missing() -> (code: i64) {
+    return 3;
+}
+
+fn disp_new() -> (code: i64) {
+    return 0;
+}
+
+fn disp_duplicate() -> (code: i64) {
+    return 1;
+}
+
+fn disp_refinement() -> (code: i64) {
+    return 2;
+}
+
+fn disp_contradiction() -> (code: i64) {
+    return 3;
+}
+
+fn disp_supersession() -> (code: i64) {
+    return 4;
+}
+
+fn disp_unknown() -> (code: i64) {
+    return 5;
+}
+
+fn state_current() -> (code: i64) {
+    return 0;
+}
+
+fn state_refined() -> (code: i64) {
+    return 1;
+}
+
+fn state_superseded() -> (code: i64) {
+    return 2;
+}
+
+fn state_contradicted() -> (code: i64) {
+    return 3;
+}
+
+fn state_unresolved() -> (code: i64) {
+    return 4;
+}
+
+fn state_duplicate() -> (code: i64) {
+    return 5;
+}
+
+fn state_unknown() -> (code: i64) {
+    return 6;
+}
+
+fn state_invalidated() -> (code: i64) {
+    return 7;
+}
+
+fn ans_pass() -> (code: i64) {
+    return 0;
+}
+
+fn ans_unknown() -> (code: i64) {
+    return 1;
+}
+
+fn ans_fail() -> (code: i64) {
+    return 2;
+}
+
+fn budget_fits() -> (code: i64) {
+    return 0;
+}
+
+fn budget_insufficient() -> (code: i64) {
+    return 1;
+}
+
+fn budget_unknown() -> (code: i64) {
+    return 2;
+}
+
+fn esc_none() -> (code: i64) {
+    return 0;
+}
+
+fn esc_specialist() -> (code: i64) {
+    return 1;
+}
+
+fn esc_general() -> (code: i64) {
+    return 2;
+}
+
+fn esc_unknown() -> (code: i64) {
+    return 3;
+}
+
+test codes_match_contract() -> (result: TestResult) {
+    if rel_unrelated() == 0 && rel_ambiguous() == 5 && ev_direct() == 0 && ev_missing() == 3 {
+        if disp_new() == 0 && disp_unknown() == 5 && state_current() == 0 && state_invalidated() == 7 {
+            if ans_pass() == 0 && ans_fail() == 2 && budget_fits() == 0 && esc_unknown() == 3 {
+                return from_assertion(equals_i64(1, 1, 101));
+            }
+        }
+    }
+    return from_assertion(equals_i64(0, 1, 101));
+}

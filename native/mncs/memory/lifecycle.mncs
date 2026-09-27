@@ -1,0 +1,243 @@
+mncs 0.18;
+
+// mncs.memory.lifecycle.v1 — ingestion worthiness, disposition, and
+// claim-state transitions.
+//
+// Ports the decision core of `language/mncs/memory/policy.mncs` (0.6
+// era) plus the orchestration predicates from the historical Rust
+// engine (`state_for`, candidate gating, relationship matching,
+// freshness, belief). Every function is total over codes: text
+// equality and alias normalization stay host-side (effect boundary);
+// native code decides over precomputed match flags and numeric codes.
+//
+// Disposition matrix (relation × evidence), preserved exactly:
+//   ambiguous → unknown; unrelated → new;
+//   same + missing → unknown, else duplicate;
+//   refines + direct/supported → refinement, else unknown;
+//   contradicts/supersedes + direct/supported → contradiction /
+//   supersession, else unknown.
+
+module mncs.memory.lifecycle.v1;
+
+use mncs.memory.codes.v1 as codes;
+use mncs.test.assertions;
+use mncs.test.suite;
+
+fn decide_ingestion(relation: i64, evidence: i64) -> (result: i64) {
+    if relation == codes.rel_ambiguous() {
+        return codes.disp_unknown();
+    }
+    if relation == codes.rel_unrelated() {
+        return codes.disp_new();
+    }
+    if relation == codes.rel_same() {
+        if evidence == codes.ev_missing() {
+            return codes.disp_unknown();
+        }
+        return codes.disp_duplicate();
+    }
+    if relation == codes.rel_refines() {
+        if evidence == codes.ev_direct() || evidence == codes.ev_supported() {
+            return codes.disp_refinement();
+        }
+        return codes.disp_unknown();
+    }
+    if relation == codes.rel_contradicts() {
+        if evidence == codes.ev_direct() || evidence == codes.ev_supported() {
+            return codes.disp_contradiction();
+        }
+        return codes.disp_unknown();
+    }
+    if relation == codes.rel_supersedes() {
+        if evidence == codes.ev_direct() || evidence == codes.ev_supported() {
+            return codes.disp_supersession();
+        }
+        return codes.disp_unknown();
+    }
+    return codes.disp_unknown();
+}
+
+// Claim state for a fresh disposition. Refinement and supersession
+// arrive CURRENT; the prior records they touch are transitioned by
+// `transition_prior` below.
+fn state_for(disposition: i64) -> (result: i64) {
+    if disposition == codes.disp_duplicate() {
+        return codes.state_duplicate();
+    }
+    if disposition == codes.disp_contradiction() {
+        return codes.state_unresolved();
+    }
+    if disposition == codes.disp_unknown() {
+        return codes.state_unknown();
+    }
+    return codes.state_current();
+}
+
+// The prior claim's new state when a refinement or supersession
+// commits against it. Anything else leaves the prior untouched
+// (returned unchanged).
+fn transition_prior(prior_state: i64, disposition: i64) -> (result: i64) {
+    if disposition == codes.disp_refinement() {
+        return codes.state_refined();
+    }
+    if disposition == codes.disp_supersession() {
+        return codes.state_superseded();
+    }
+    return prior_state;
+}
+
+// Worthiness: noise kind or empty text is not worth a claim.
+// `text_empty` is host-observed (text boundary); the rule is native.
+fn worthy(kind_noise: bool, text_empty: bool) -> (result: bool) {
+    if kind_noise {
+        return false;
+    }
+    if text_empty {
+        return false;
+    }
+    return true;
+}
+
+// Freshness score: 100 when no positive requirement, 100 when young
+// enough, else 0. Saturating age (never negative).
+fn freshness(as_of: i64, valid_from: i64, required: i64, has_required: bool) -> (result: i64) {
+    if !has_required {
+        return 100;
+    }
+    if required <= 0 {
+        return 100;
+    }
+    let age: i64 = select(as_of >= valid_from, as_of - valid_from, 0);
+    if age <= required {
+        return 100;
+    }
+    return 0;
+}
+
+// Candidate predicate. String comparisons (subject/topic equality,
+// forbidden membership) are host-observed flags; every semantic
+// combination is decided here.
+fn candidate_ok(state: i64, confidence: i64, min_confidence: i64, include_uncertainty: bool, subject_match: bool, topic_match: bool, forbidden_hit: bool, fresh_ok: bool) -> (result: bool) {
+    if state != codes.state_current() && state != codes.state_unresolved() {
+        return false;
+    }
+    if confidence < min_confidence && !include_uncertainty {
+        return false;
+    }
+    if !subject_match {
+        return false;
+    }
+    if !topic_match {
+        return false;
+    }
+    if forbidden_hit {
+        return false;
+    }
+    if !fresh_ok {
+        return false;
+    }
+    return true;
+}
+
+// Relationship-match predicate for linking a new observation to an
+// existing claim of the same subject: same topic required, then the
+// value comparison depends on the disposition.
+fn related_match(disposition: i64, same_topic: bool, same_value: bool) -> (result: bool) {
+    if !same_topic {
+        return false;
+    }
+    if disposition == codes.disp_duplicate() {
+        return same_value;
+    }
+    if disposition == codes.disp_contradiction() {
+        return !same_value;
+    }
+    if disposition == codes.disp_refinement() {
+        return true;
+    }
+    if disposition == codes.disp_supersession() {
+        return true;
+    }
+    return false;
+}
+
+// Belief gate: no claims or more than one distinct value → UNKNOWN;
+// exactly one value across ≥1 claims → PASS.
+fn belief_gate(n_claims: i64, n_distinct: i64) -> (result: i64) {
+    if n_claims <= 0 {
+        return codes.ans_unknown();
+    }
+    if n_distinct == 1 {
+        return codes.ans_pass();
+    }
+    return codes.ans_unknown();
+}
+
+test disposition_matrix_matches_oracle() -> (result: TestResult) {
+    if decide_ingestion(codes.rel_unrelated(), codes.ev_direct()) == codes.disp_new() {
+        if decide_ingestion(codes.rel_same(), codes.ev_supported()) == codes.disp_duplicate() {
+            if decide_ingestion(codes.rel_refines(), codes.ev_direct()) == codes.disp_refinement() {
+                if decide_ingestion(codes.rel_contradicts(), codes.ev_direct()) == codes.disp_contradiction() {
+                    if decide_ingestion(codes.rel_supersedes(), codes.ev_direct()) == codes.disp_supersession() {
+                        if decide_ingestion(codes.rel_contradicts(), codes.ev_weak()) == codes.disp_unknown() {
+                            if decide_ingestion(codes.rel_same(), codes.ev_missing()) == codes.disp_unknown() {
+                                if decide_ingestion(codes.rel_ambiguous(), codes.ev_direct()) == codes.disp_unknown() {
+                                    return from_assertion(equals_i64(1, 1, 201));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return from_assertion(equals_i64(0, 1, 201));
+}
+
+test states_follow_dispositions() -> (result: TestResult) {
+    if state_for(codes.disp_new()) == codes.state_current() {
+        if state_for(codes.disp_duplicate()) == codes.state_duplicate() {
+            if state_for(codes.disp_contradiction()) == codes.state_unresolved() {
+                if state_for(codes.disp_unknown()) == codes.state_unknown() {
+                    if transition_prior(codes.state_current(), codes.disp_refinement()) == codes.state_refined() {
+                        if transition_prior(codes.state_current(), codes.disp_supersession()) == codes.state_superseded() {
+                            if transition_prior(codes.state_current(), codes.disp_contradiction()) == codes.state_current() {
+                                return from_assertion(equals_i64(1, 1, 202));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return from_assertion(equals_i64(0, 1, 202));
+}
+
+test worthiness_and_freshness() -> (result: TestResult) {
+    if worthy(false, false) && !worthy(true, false) && !worthy(false, true) {
+        if freshness(25, 10, 0, false) == 100 && freshness(25, 10, 20, true) == 100 {
+            if freshness(25, 10, 10, true) == 0 && freshness(5, 10, 20, true) == 100 {
+                return from_assertion(equals_i64(1, 1, 203));
+            }
+        }
+    }
+    return from_assertion(equals_i64(0, 1, 203));
+}
+
+test candidate_predicate() -> (result: TestResult) {
+    let base: bool = candidate_ok(codes.state_current(), 90, 85, false, true, true, false, true);
+    let bad_state: bool = candidate_ok(codes.state_superseded(), 90, 85, false, true, true, false, true);
+    let low_conf: bool = candidate_ok(codes.state_current(), 80, 85, false, true, true, false, true);
+    let low_conf_allowed: bool = candidate_ok(codes.state_current(), 80, 85, true, true, true, false, true);
+    let forbidden: bool = candidate_ok(codes.state_current(), 90, 85, false, true, true, true, true);
+    if base && !bad_state && !low_conf && low_conf_allowed && !forbidden {
+        if related_match(codes.disp_contradiction(), true, false) && !related_match(codes.disp_contradiction(), true, true) {
+            if related_match(codes.disp_duplicate(), true, true) && related_match(codes.disp_supersession(), true, false) {
+                if !related_match(codes.disp_new(), true, true) && belief_gate(2, 1) == codes.ans_pass() && belief_gate(2, 2) == codes.ans_unknown() && belief_gate(0, 0) == codes.ans_unknown() {
+                    return from_assertion(equals_i64(1, 1, 204));
+                }
+            }
+        }
+    }
+    return from_assertion(equals_i64(0, 1, 204));
+}
