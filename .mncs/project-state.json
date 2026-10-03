@@ -1,0 +1,17 @@
+{
+  "schema_version": "mncs.project-intent/1",
+  "purpose": "Bounded research implementation of an intelligent memory subsystem for a general reasoner: semantic questions answered with compact provenance-bearing capsules over immutable observations, canonical entities, and typed specialists.",
+  "entry": [
+    "python3 -m pytest tests/test_memory.py"
+  ],
+  "milestones": [
+    {
+      "id": "mncs-memory:projection-conformance",
+      "title": "Declared ambient projection surfaces satisfy their contract",
+      "subject_slot": "declarations",
+      "evidence": "projection-conformance",
+      "dependencies": [],
+      "blockers": []
+    }
+  ]
+}

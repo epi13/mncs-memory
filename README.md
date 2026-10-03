@@ -1,5 +1,8 @@
 # MNCS Memory
 
+<!-- MNCS:generated:begin -->
+<!-- MNCS:generated:end -->
+
 [![MNCS memory tests](docs/mncs-badge.svg)](https://github.com/epi13/mncs-memory/actions/workflows/mncs-family.yml)
 
 MNCS Memory is a bounded research implementation of an intelligent memory
