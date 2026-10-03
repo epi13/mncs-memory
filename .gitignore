@@ -5,4 +5,5 @@
 __pycache__/
 *.pyc
 state/
-.mncs/
+.mncs/cache/
+.mncs/doctor/

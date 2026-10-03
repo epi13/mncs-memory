@@ -1,5 +1,21 @@
 # MNCS Memory
 
+<!-- MNCS:generated:begin -->
+## Project entry
+
+Bounded research implementation of an intelligent memory subsystem for a general reasoner: semantic questions answered with compact provenance-bearing capsules over immutable observations, canonical entities, and typed specialists.
+
+```bash
+python3 -m pytest tests/test_memory.py
+```
+
+Declared capabilities (declarations do not establish execution health):
+
+- `semantic-memory/0.1` — mncs-library (experimental)
+
+Semantic sources and ownership: `.mncs/projections.json`.
+<!-- MNCS:generated:end -->
+
 [![MNCS memory tests](docs/mncs-badge.svg)](https://github.com/epi13/mncs-memory/actions/workflows/mncs-family.yml)
 
 MNCS Memory is a bounded research implementation of an intelligent memory

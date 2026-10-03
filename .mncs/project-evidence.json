@@ -1,0 +1,16 @@
+{
+  "projection-conformance": {
+    "schema_version": "mncs.semantic-evidence/1",
+    "producer": "mncs-environment:projection-conformance",
+    "subject_identity": "sha256:2a36b0dfd27f4e177cce24f134f51206ce5de156483cde40ed222e18e7e8ba08",
+    "verdict": "pass",
+    "validation": {
+      "contract": "MNCS-Commons:semantic-projection/1",
+      "identity": "sha256:3aad261ac81433dfaa055b4a5d798bf46e444f1463732aa7de88febbbed46041",
+      "profile": "sha256:259e41ea542e7a1400f1471b0316de4fafc888d6f953c8e91165ff2cfe1e78cb",
+      "profile_schema": "sha256:622ca8df9cc2862cd7df12477e55e14e06479e5d6062d34046f32a3d1272a982",
+      "native_receipt": "0a62c1d3f4ce8756eb5f0f96c7d46d648c80a6d41326b705c324f1f09e232197"
+    },
+    "receipt_identity": "sha256:ab5f41ea443a671b8e6c0175904e29a9ddd5b5d2e7c394323bec38d966e93d79"
+  }
+}

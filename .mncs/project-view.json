@@ -1,0 +1,23 @@
+{
+  "capabilities": [
+    {
+      "contract": "semantic-memory",
+      "fingerprint_sources": [
+        "language/",
+        "native/"
+      ],
+      "kind": "mncs-library",
+      "stability": "experimental",
+      "version": "0.1"
+    }
+  ],
+  "dependencies": [],
+  "entry": [
+    "python3 -m pytest tests/test_memory.py"
+  ],
+  "purpose": "Bounded research implementation of an intelligent memory subsystem for a general reasoner: semantic questions answered with compact provenance-bearing capsules over immutable observations, canonical entities, and typed specialists.",
+  "repository": "mncs-memory",
+  "schema_version": "mncs.project-view/1",
+  "source_identity": "sha256:d323369f6e0133fac19aa95ca57716ee4bc8c329ee098f61dad0a5af7298d44f",
+  "structure": {}
+}
